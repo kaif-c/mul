@@ -9,11 +9,11 @@
 #include <string.h>
 
 // METADATA
-#define VERSION "1.0"
+#define VERSION "1.1"
 #define MIN_ZOOM 0.001
 #define TERM_RED "\033[31m"
 #define TERM_DEF "\033[0m"
-#define LOCK_FILE "/.jotner"
+#define LOCK_FILE "/.mul"
 
 // OpenGL Function Decleration
 #define EXT_FUNC(type, name) static type name = 0
@@ -84,9 +84,8 @@ static uint8_t vec2f_eql(const Vec2f *const a, const Vec2f *const b) {
 
 static Error stoi(const char *text, int32_t *data) {
     *data = atoi(text);
-    if (!*data) {
+    if (!*data)
         return ARG_ERR;
-    }
 
     return OK;
 }
@@ -261,7 +260,7 @@ static Error terminate() {
 static Error screenshot() {
     XImage *img = XGetImage(app.dpy, app.wind, 0, 0, screen_w, screen_h, AllPlanes, ZPixmap);
     if (!img)
-        return X_ERR;
+        THROW(X_ERR, "Cannot use XGetImage");
 
     GLuint texture;
     GLTRY(glGenTextures(1, &texture));
@@ -269,7 +268,7 @@ static Error screenshot() {
 
     GLubyte *img_data = malloc(screen_w * screen_w * 4);
     if (!img_data)
-        return MEM_ERR;
+        THROW(MEM_ERR, "Cannot use malloc");
 
     for (uint32_t x = 0; x < screen_w; x++) {
         for (uint32_t y = 0; y < screen_h; y++) {
@@ -298,7 +297,9 @@ static Error screenshot() {
     return OK;
 }
 
-static Error compile_shader(uint32_t *shade, GLenum shade_type, const char *const shade_src, const char *const shade_name) {
+static Error compile_shader(uint32_t *shade, GLenum shade_type,
+                            const char *const shade_src,
+                            const char *const shade_name) {
     *shade = glCreateShader(shade_type);
     GLTRY(glShaderSource(*shade, 1, &shade_src, 0));
     GLTRY(glCompileShader(*shade));
@@ -306,11 +307,9 @@ static Error compile_shader(uint32_t *shade, GLenum shade_type, const char *cons
     int  success;
     char info_log[512];
     GLTRY(glGetShaderiv(*shade, GL_COMPILE_STATUS, &success));
-    if(!success)
-    {
+    if(!success) {
         GLTRY(glGetShaderInfoLog(*shade, 512, NULL, info_log));
-        ERR("%s SHADER: %s\n", shade_name, info_log);
-        return SHADER_ERR;
+        THROW(SHADER_ERR, "%s SHADER: %s\n", shade_name, info_log);
     }
 
     return OK;
