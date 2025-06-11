@@ -33,12 +33,12 @@ make
 
 ### 3. Run
 ```bash
-./build/rel/jotner
+./build/rel/mul
 ```
 
 ### 3.1. Run debug build
 ```bash
-./build/dbg/jotner
+./build/dbg/mul
 ```
 
 ## Controls
