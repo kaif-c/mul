@@ -1,6 +1,8 @@
 // Includes
 #include <GL/gl.h>
 #include <GL/glx.h>
+#include <X11/X.h>
+#include <X11/Xlib.h>
 #include <stdio.h>
 #define __USE_XOPEN_EXTENDED // For usleep in c23
 #include <unistd.h>
@@ -9,7 +11,7 @@
 #include <string.h>
 
 // METADATA
-#define VERSION "1.1"
+#define VERSION "1.2"
 #define MIN_ZOOM 0.001
 #define TERM_RED "\033[31m"
 #define TERM_DEF "\033[0m"
@@ -45,6 +47,7 @@ typedef struct {
     GLXContext ctx;
     Window wind;
     Atom close;
+    char locked_keyboard;
 } App;
 
 typedef struct {
@@ -234,6 +237,20 @@ static Error create_lock() {
     return OK;
 }
 
+static void lock_keyboard() {
+    app.locked_keyboard = XGrabKeyboard(app.dpy, app.wind, True, GrabModeAsync,
+                                 GrabModeAsync, CurrentTime);
+    if (app.locked_keyboard != GrabSuccess)
+        ERR("Cannot grab (lock) keyboard: %i", app.locked_keyboard);
+}
+
+static void unlock_keyboard() {
+    if (!app.locked_keyboard)
+        return;
+    XUngrabKeyboard(app.dpy, CurrentTime);
+    app.locked_keyboard = 0;
+}
+
 static void init_config() {
     config = (Config) {
         .refresh_rate = 1e6/240,
@@ -244,6 +261,7 @@ static void init_config() {
 
 static Error terminate() {
     remove(lock_file_name);
+    unlock_keyboard();
     if (app.ctx) {
         GLTRY(glBindVertexArray(0));
         GLTRY(glDeleteVertexArrays(1, &mesh));
@@ -476,6 +494,7 @@ int main(int32_t argc, char *argv[]) {
     TRY(init_mesh());
     tf.zoom = 1;
 
+    lock_keyboard();
     uint8_t should_close = 0;
     while (!should_close) {
         XSetInputFocus(app.dpy, app.wind, RevertToPointerRoot, CurrentTime);
