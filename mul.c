@@ -11,7 +11,7 @@
 #include <string.h>
 
 // METADATA
-#define VERSION "1.3"
+#define VERSION "1.3a"
 #define MIN_ZOOM 0.001
 #define TERM_RED "\033[31m"
 #define TERM_DEF "\033[0m"
@@ -196,6 +196,9 @@ static Error init_app() {
     app.ctx = glXCreateContextAttribsARB(app.dpy, fbc[0], NULL, GL_TRUE, gl_attr);
     if (!glXMakeCurrent(app.dpy, app.wind, app.ctx))
         THROW(X_ERR, "Cannot use OpenGL context");
+
+    // Needed for multiple monitors in certain WM to stop losing focus
+    XSetInputFocus(app.dpy, app.wind, RevertToPointerRoot, CurrentTime);
  
 #include "gl_func.h"
 #undef EXT_FUNC
