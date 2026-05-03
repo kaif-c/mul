@@ -11,7 +11,7 @@
 #include <string.h>
 
 // METADATA
-#define VERSION "1.2"
+#define VERSION "1.3"
 #define MIN_ZOOM 0.001
 #define TERM_RED "\033[31m"
 #define TERM_DEF "\033[0m"
@@ -60,7 +60,6 @@ typedef struct {
 } Transform;
 
 typedef struct {
-    int32_t refresh_rate;
     char *exe_name;
     float zoom_sensitivity;
     float padd_sensitivity;
@@ -85,14 +84,6 @@ static uint8_t vec2f_eql(const Vec2f *const a, const Vec2f *const b) {
     return a->x == b->x && a->y == b->y;
 }
 
-static Error stoi(const char *text, int32_t *data) {
-    *data = atoi(text);
-    if (!*data)
-        return ARG_ERR;
-
-    return OK;
-}
-
 static Error stof(const char *text, float *data) {
     *data = atof(text);
     if (!*data)
@@ -104,14 +95,6 @@ static Error stof(const char *text, float *data) {
 // Arguments
 static void arg_version() {
     printf("%s-v" VERSION "\n", config.exe_name);
-}
-
-static Error arg_fps(char *fps) {
-    int frame_rate;
-    TRY(stoi(fps, &frame_rate));
-    config.refresh_rate = 1e6 / (double)frame_rate;
-
-    return OK;
 }
 
 static Error arg_zoom(char *sensitivity) {
@@ -129,7 +112,6 @@ static void arg_help() {
             "Usage: %s [OPTIONS]\n"
             "  -h, --help                               show this help and exit\n"
             "  -v, --version                            show the version of program and exit\n"
-            "  -f, --frames-per-second <int32=200>      the frame rate of the app (recommended 2x the frame rate of monitor)\n"
             "  -z, --zoom-sensitivity <float32=0.1>     scroll sensitivity for zooming\n"
             "  -p, --panning-sensitivity <float32=1.0>  mouse cursor sensitivity for panning the camera\n",
             config.exe_name
@@ -223,6 +205,8 @@ static Error init_app() {
 
 static Error create_lock() {
     const char *home = getenv("HOME");
+    if (home == NULL)
+        THROW(ARG_ERR, "HOME environment variable doesn't exist! Wait what? how?");
     lock_file_name = malloc(strlen(home) + strlen(LOCK_FILE));
     strcpy(lock_file_name, home);
     strcat(lock_file_name, LOCK_FILE);
@@ -253,7 +237,6 @@ static void unlock_keyboard() {
 
 static void init_config() {
     config = (Config) {
-        .refresh_rate = 1e6/240,
         .zoom_sensitivity = 0.2,
         .padd_sensitivity = 1,
     };
@@ -411,7 +394,6 @@ static void update_movement(XEvent event) {
 
     if (event.type == ButtonPress) {
         if (event.xbutton.button == Button4 || event.xbutton.button == Button5) {
-            // Thank you DeepSeek, although i had to make some changes
             float x0 = (mouse_pos.x - tf.padd.x) / tf.zoom;
             float y0 = (mouse_pos.y - tf.padd.y) / tf.zoom;
             tf.zoom = max(tf.zoom - (config.zoom_sensitivity*tf.zoom) * (event.xbutton.button - 4.5), MIN_ZOOM);
@@ -454,13 +436,6 @@ int main(int32_t argc, char *argv[]) {
                 arg_version();
                 return 0;
             }
-            else if (!strcmp("--frames-per-second", argv[i]) ||
-                    !strcmp("-f", argv[i])) {
-                if (argc == i + 1) {
-                    THROW(ARG_ERR, "Expected an integer value for fps");
-                }
-                TRY(arg_fps(argv[++i]));
-            }
             else if (!strcmp("--zoom-sensitivity", argv[i]) ||
                     !strcmp("-z", argv[i])) {
                 if (argc == i + 1) {
@@ -496,11 +471,10 @@ int main(int32_t argc, char *argv[]) {
 
     lock_keyboard();
     uint8_t should_close = 0;
+
     while (!should_close) {
-        XSetInputFocus(app.dpy, app.wind, RevertToPointerRoot, CurrentTime);
         update(&should_close);
         TRY(draw());
-        usleep(config.refresh_rate);
     }
 
     TRY(terminate());
