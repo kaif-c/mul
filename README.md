@@ -53,5 +53,5 @@ make
 |----------|--------|
 |-h, --help | Shows the list of arguments and the usage |
 | -v, --version| show the version of program and exit |
-| -z, --zoom-sensitivity <float32=0.1> | scroll sensitivity for zooming|
+| -z, --zoom-sensitivity <float32=0.2> | scroll sensitivity for zooming|
 | -p, --panning-sensitivity <float32=1.0> | mouse cursor sensitivity for panning the camera |

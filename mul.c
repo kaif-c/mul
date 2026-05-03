@@ -112,7 +112,7 @@ static void arg_help() {
             "Usage: %s [OPTIONS]\n"
             "  -h, --help                               show this help and exit\n"
             "  -v, --version                            show the version of program and exit\n"
-            "  -z, --zoom-sensitivity <float32=0.1>     scroll sensitivity for zooming\n"
+            "  -z, --zoom-sensitivity <float32=0.2>     scroll sensitivity for zooming\n"
             "  -p, --panning-sensitivity <float32=1.0>  mouse cursor sensitivity for panning the camera\n",
             config.exe_name
             );
